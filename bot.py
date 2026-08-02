@@ -8,6 +8,7 @@ from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
+    CallbackQueryHandler,
     filters,
 )
 
@@ -21,7 +22,9 @@ from handlers.start import (
     status,
 )
 
+from handlers.callbacks import button_callback
 from handlers.download import download
+
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
@@ -44,6 +47,7 @@ def home():
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
+
     web.run(
         host="0.0.0.0",
         port=port,
@@ -59,18 +63,30 @@ def run_web():
 def main():
     logger.info("Starting Modex Video Downloader Bot...")
 
-    # Create database tables
+    # Create SQLite tables
     create_tables()
 
+    # Create Telegram application
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # Commands
+    # -------------------------
+    # Command Handlers
+    # -------------------------
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("about", about))
     app.add_handler(CommandHandler("status", status))
 
-    # Video Downloader
+    # -------------------------
+    # Button Callback Handler
+    # -------------------------
+    app.add_handler(
+        CallbackQueryHandler(button_callback)
+    )
+
+    # -------------------------
+    # Video Download Handler
+    # -------------------------
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
