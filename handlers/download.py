@@ -27,6 +27,7 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
     url = update.message.text.strip()
+
     save_user(user)
 
     # Prevent spam
@@ -62,6 +63,9 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📥 Downloading {platform} video...\n0%"
     )
 
+    # Current event loop
+    loop = asyncio.get_running_loop()
+
     file = None
 
     progress = {
@@ -85,7 +89,7 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         percent = int(downloaded * 100 / total)
 
-        # Only update every 10%
+        # Update every 10%
         if percent - progress["last"] >= 10:
             progress["last"] = percent
 
@@ -93,7 +97,7 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 message.edit_text(
                     f"📥 Downloading {platform} video...\n{percent}%"
                 ),
-                context.application.loop,
+                loop,
             )
 
     try:
@@ -101,8 +105,9 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{user.username or user.first_name} started downloading a {platform} video."
         )
 
-        # Download video
-        file = download_video(
+        # Download in background thread
+        file = await asyncio.to_thread(
+            download_video,
             platform,
             url,
             progress_hook,
@@ -138,10 +143,10 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         save_download(
-        user.id,
-        platform,
-        url,
-            )
+            user.id,
+            platform,
+            url,
+        )
 
     except Exception as e:
         logger.exception("Download failed")
@@ -151,6 +156,7 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     finally:
+        # Delete downloaded file
         if file and os.path.exists(file):
             try:
                 os.remove(file)
@@ -161,6 +167,7 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await asyncio.sleep(2)
 
+        # Delete status message
         try:
             await message.delete()
         except Exception:
