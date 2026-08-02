@@ -12,8 +12,9 @@ from telegram.ext import (
 )
 
 from config import BOT_TOKEN
+from database.database import create_tables
 
-from handlers.commands import (
+from handlers.start import (
     start,
     help_command,
     about,
@@ -29,10 +30,12 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# -----------------------------
-# Flask App (Required for Render Web Service)
-# -----------------------------
+# ---------------------------------
+# Flask App (Render Health Check)
+# ---------------------------------
+
 web = Flask(__name__)
+
 
 @web.route("/")
 def home():
@@ -40,25 +43,26 @@ def home():
 
 
 def run_web():
+    port = int(os.environ.get("PORT", 10000))
     web.run(
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000)),
+        port=port,
         debug=False,
         use_reloader=False,
     )
 
 
-# -----------------------------
+# ---------------------------------
 # Telegram Bot
-# -----------------------------
+# ---------------------------------
+
 def main():
     logger.info("Starting Modex Video Downloader Bot...")
 
-    app = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .build()
-    )
+    # Create database tables
+    create_tables()
+
+    app = Application.builder().token(BOT_TOKEN).build()
 
     # Commands
     app.add_handler(CommandHandler("start", start))
@@ -66,7 +70,7 @@ def main():
     app.add_handler(CommandHandler("about", about))
     app.add_handler(CommandHandler("status", status))
 
-    # Video links
+    # Video Downloader
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
@@ -83,11 +87,9 @@ def main():
 
 
 if __name__ == "__main__":
-    # Start the Flask server for Render
     threading.Thread(
         target=run_web,
         daemon=True,
     ).start()
 
-    # Start the Telegram bot
     main()
