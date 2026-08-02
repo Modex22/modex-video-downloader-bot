@@ -16,3 +16,14 @@ def download_tiktok(url, progress_callback=None):
         progress_callback,
         options
     )
+
+from .common import download
+
+def download_tiktok(url, progress_callback=None):
+    return download(
+        url,
+        progress_callback,
+        {
+            "format": "best",
+        },
+    )

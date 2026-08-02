@@ -13,11 +13,15 @@ def download(url, progress_callback=None, options=None):
             progress_callback(data)
 
     ydl_opts = {
-        "format": "best",
+        # Prefer the original MP4 stream
+        "format": "best[ext=mp4]/best",
+
         "outtmpl": f"{DOWNLOAD_FOLDER}/%(title)s.%(ext)s",
-        "merge_output_format": "mp4",
+
+        # Don't force a remux
         "noplaylist": True,
         "quiet": True,
+
         "progress_hooks": [hook],
     }
 
