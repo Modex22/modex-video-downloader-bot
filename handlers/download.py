@@ -58,59 +58,23 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Initial status message
+    # Downloading message
     message = await update.message.reply_text(
-        f"📥 Downloading {platform} video...\n0%"
+        f"📥 Downloading {platform} video..."
     )
 
-    # Current event loop
-    loop = asyncio.get_running_loop()
-
     file = None
-
-    progress = {
-        "last": 0
-    }
-
-    def progress_hook(data):
-        """Called by yt-dlp while downloading."""
-
-        if data.get("status") != "downloading":
-            return
-
-        downloaded = data.get("downloaded_bytes", 0)
-        total = (
-            data.get("total_bytes")
-            or data.get("total_bytes_estimate")
-        )
-
-        if not total:
-            return
-
-        percent = int(downloaded * 100 / total)
-
-        # Update every 10%
-        if percent - progress["last"] >= 10:
-            progress["last"] = percent
-
-            asyncio.run_coroutine_threadsafe(
-                message.edit_text(
-                    f"📥 Downloading {platform} video...\n{percent}%"
-                ),
-                loop,
-            )
 
     try:
         logger.info(
             f"{user.username or user.first_name} started downloading a {platform} video."
         )
 
-        # Download in background thread
+        # Download video in background thread
         file = await asyncio.to_thread(
             download_video,
             platform,
             url,
-            progress_hook,
         )
 
         # Check file size
@@ -132,20 +96,23 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.edit_text("⬆ Uploading video...")
 
         with open(file, "rb") as video:
-            await update.message.reply_video(video=video)
+            await update.message.reply_video(
+                video=video,
+                supports_streaming=True,
+            )
 
         logger.info(
             f"{platform} video sent successfully."
-        )
-
-        await message.edit_text(
-            "✅ Video sent successfully!"
         )
 
         save_download(
             user.id,
             platform,
             url,
+        )
+
+        await message.edit_text(
+            "✅ Video sent successfully!"
         )
 
     except Exception as e:
@@ -167,7 +134,6 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await asyncio.sleep(2)
 
-        # Delete status message
         try:
             await message.delete()
         except Exception:
