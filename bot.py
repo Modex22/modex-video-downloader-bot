@@ -1,67 +1,61 @@
-from telegram import Update
+import os
+import threading
+import logging
+
+from flask import Flask
+
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
-    ContextTypes,
     filters,
 )
 
 from config import BOT_TOKEN
-from logger import logger
-
-from database.database import create_tables
-
-from handlers.commands import (
-    start,
-    help_command,
-    about,
-    status,
-)
-
+from handlers.start import start
+from handlers.help import help_command
+from handlers.about import about
 from handlers.download import download
 
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    level=logging.INFO,
+)
 
-async def error_handler(
-    update: object,
-    context: ContextTypes.DEFAULT_TYPE,
-):
-    """Handle unexpected errors."""
-    logger.exception(
-        "Unhandled exception:",
-        exc_info=context.error,
+logger = logging.getLogger(__name__)
+
+# -----------------------------
+# Flask app (for Render)
+# -----------------------------
+web = Flask(__name__)
+
+@web.route("/")
+def home():
+    return "✅ Modex Video Downloader Bot is running."
+
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    web.run(
+        host="0.0.0.0",
+        port=port,
+        debug=False,
+        use_reloader=False,
     )
 
-    if isinstance(update, Update) and update.effective_message:
-        try:
-            await update.effective_message.reply_text(
-                "❌ An unexpected error occurred.\n"
-                "Please try again later."
-            )
-        except Exception:
-            pass
 
-
+# -----------------------------
+# Telegram Bot
+# -----------------------------
 def main():
     logger.info("Starting Modex Video Downloader Bot...")
 
-    # Create database tables if they don't exist
-    create_tables()
+    app = Application.builder().token(BOT_TOKEN).build()
 
-    # Create the Telegram application
-    app = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .build()
-    )
-
-    # Register commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("about", about))
-    app.add_handler(CommandHandler("status", status))
 
-    # Handle video links
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
@@ -69,24 +63,18 @@ def main():
         )
     )
 
-    # Register global error handler
-    app.add_error_handler(error_handler)
-
     logger.info("Bot started successfully.")
     print("🚀 Modex Video Downloader Bot is running...")
 
     app.run_polling(
-        drop_pending_updates=True
+        drop_pending_updates=True,
     )
 
 
-import asyncio
-
 if __name__ == "__main__":
-    try:
-        asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    threading.Thread(
+        target=run_web,
+        daemon=True,
+    ).start()
 
     main()
