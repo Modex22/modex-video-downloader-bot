@@ -17,4 +17,4 @@ def download_video(platform, url, progress_callback=None):
     if downloader is None:
         raise ValueError(f"Unsupported platform: {platform}")
 
-    return downloader(url)
+    return downloader(url, progress_callback)

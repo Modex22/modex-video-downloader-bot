@@ -26,7 +26,7 @@ async def error_handler(
     update: object,
     context: ContextTypes.DEFAULT_TYPE,
 ):
-    """Log all unexpected errors."""
+    """Handle unexpected errors."""
     logger.exception(
         "Unhandled exception:",
         exc_info=context.error,
@@ -45,27 +45,23 @@ async def error_handler(
 def main():
     logger.info("Starting Modex Video Downloader Bot...")
 
+    # Create database tables if they don't exist
     create_tables()
 
+    # Create the Telegram application
     app = (
         Application.builder()
         .token(BOT_TOKEN)
         .build()
     )
 
-    app = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .build()
-    )
-
-    # Commands
+    # Register commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("about", about))
     app.add_handler(CommandHandler("status", status))
 
-    # Video links
+    # Handle video links
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
@@ -73,11 +69,10 @@ def main():
         )
     )
 
-    # Global error handler
+    # Register global error handler
     app.add_error_handler(error_handler)
 
     logger.info("Bot started successfully.")
-
     print("🚀 Modex Video Downloader Bot is running...")
 
     app.run_polling(

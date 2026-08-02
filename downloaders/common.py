@@ -13,7 +13,7 @@ def download(url, progress_callback=None, options=None):
             progress_callback(data)
 
     ydl_opts = {
-        "format": "bestvideo+bestaudio/best",
+        "format": "best",
         "outtmpl": f"{DOWNLOAD_FOLDER}/%(title)s.%(ext)s",
         "merge_output_format": "mp4",
         "noplaylist": True,
