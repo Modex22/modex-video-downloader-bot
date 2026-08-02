@@ -28,6 +28,8 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     url = update.message.text.strip()
 
+    logger.info(f"Received URL: {url}")
+
     save_user(user)
 
     # Prevent spam
@@ -46,6 +48,8 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Detect platform
     platform = get_platform(url)
+
+    logger.info(f"Detected platform: {platform}")
 
     if platform is None:
         await update.message.reply_text(
@@ -70,15 +74,23 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{user.username or user.first_name} started downloading a {platform} video."
         )
 
-        # Download video in background thread
+        logger.info("Starting yt-dlp...")
+
         file = await asyncio.to_thread(
             download_video,
             platform,
             url,
         )
 
+        logger.info(f"Download complete: {file}")
+
+        if not file or not os.path.exists(file):
+            raise FileNotFoundError("Downloaded file was not found.")
+
         # Check file size
         file_size = os.path.getsize(file)
+
+        logger.info(f"File size: {file_size} bytes")
 
         if file_size > MAX_FILE_SIZE:
             os.remove(file)
@@ -92,7 +104,6 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # Uploading
         await message.edit_text("⬆ Uploading video...")
 
         with open(file, "rb") as video:
@@ -101,9 +112,7 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 supports_streaming=True,
             )
 
-        logger.info(
-            f"{platform} video sent successfully."
-        )
+        logger.info("Video uploaded successfully.")
 
         save_download(
             user.id,
@@ -119,14 +128,14 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.exception("Download failed")
 
         await message.edit_text(
-            f"❌ Download failed.\n\n{e}"
+            f"❌ Download failed.\n\n{str(e)}"
         )
 
     finally:
-        # Delete downloaded file
         if file and os.path.exists(file):
             try:
                 os.remove(file)
+                logger.info("Temporary file deleted.")
             except Exception:
                 logger.warning(
                     f"Could not delete file: {file}"
