@@ -69,6 +69,12 @@ def main():
     # Create Telegram application
     app = Application.builder().token(BOT_TOKEN).build()
 
+    async def debug(update, context):
+        print("DEBUG:", update)
+
+    async def debug(update, context):
+        print("DEBUG:", update)
+
     # -------------------------
     # Command Handlers
     # -------------------------
