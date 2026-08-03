@@ -71,19 +71,6 @@ def main():
     # Create Telegram application
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # -------------------------
-    # Debug Handler
-    # -------------------------
-    async def debug(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        logger.info(f"UPDATE RECEIVED: {update}")
-
-    app.add_handler(
-        MessageHandler(
-            filters.ALL,
-            debug,
-        ),
-        group=0,
-    )
 
     # -------------------------
     # Command Handlers
