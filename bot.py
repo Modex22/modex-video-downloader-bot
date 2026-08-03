@@ -4,11 +4,13 @@ import logging
 
 from flask import Flask
 
+from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
+    ContextTypes,
     filters,
 )
 
@@ -69,11 +71,19 @@ def main():
     # Create Telegram application
     app = Application.builder().token(BOT_TOKEN).build()
 
-    async def debug(update, context):
-        print("DEBUG:", update)
+    # -------------------------
+    # Debug Handler
+    # -------------------------
+    async def debug(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logger.info(f"UPDATE RECEIVED: {update}")
 
-    async def debug(update, context):
-        print("DEBUG:", update)
+    app.add_handler(
+        MessageHandler(
+            filters.ALL,
+            debug,
+        ),
+        group=0,
+    )
 
     # -------------------------
     # Command Handlers
@@ -105,6 +115,7 @@ def main():
 
     app.run_polling(
         drop_pending_updates=True,
+        allowed_updates=Update.ALL_TYPES,
     )
 
 
