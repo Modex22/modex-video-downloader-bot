@@ -3,14 +3,12 @@ import threading
 import logging
 
 from flask import Flask
-
-from telegram import Update
+from telegram import BotCommand
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
-    ContextTypes,
     filters,
 )
 
@@ -22,6 +20,7 @@ from handlers.start import (
     help_command,
     about,
     status,
+    settings,
 )
 
 from handlers.callbacks import button_callback
@@ -35,9 +34,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------
-# Flask App (Render Health Check)
-# ---------------------------------
+# -----------------------------
+# Flask App (Railway Health Check)
+# -----------------------------
 
 web = Flask(__name__)
 
@@ -48,7 +47,7 @@ def home():
 
 
 def run_web():
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 8080))
 
     web.run(
         host="0.0.0.0",
@@ -58,38 +57,45 @@ def run_web():
     )
 
 
-# ---------------------------------
+# -----------------------------
 # Telegram Bot
-# ---------------------------------
+# -----------------------------
+
+async def post_init(application: Application):
+    await application.bot.set_my_commands([
+        BotCommand("start", "Bot main menu"),
+        BotCommand("help", "How to use the bot"),
+        BotCommand("settings", "Bot settings"),
+        BotCommand("about", "About Modex Downloader"),
+        BotCommand("status", "Bot status"),
+    ])
+
 
 def main():
     logger.info("Starting Modex Video Downloader Bot...")
 
-    # Create SQLite tables
     create_tables()
 
-    # Create Telegram application
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .post_init(post_init)
+        .build()
+    )
 
-
-    # -------------------------
-    # Command Handlers
-    # -------------------------
+    # Commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("settings", settings))
     app.add_handler(CommandHandler("about", about))
     app.add_handler(CommandHandler("status", status))
 
-    # -------------------------
-    # Button Callback Handler
-    # -------------------------
+    # Buttons
     app.add_handler(
         CallbackQueryHandler(button_callback)
     )
 
-    # -------------------------
-    # Video Download Handler
-    # -------------------------
+    # Downloads
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
@@ -102,7 +108,6 @@ def main():
 
     app.run_polling(
         drop_pending_updates=True,
-        allowed_updates=Update.ALL_TYPES,
     )
 
 

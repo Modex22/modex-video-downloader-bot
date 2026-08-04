@@ -52,3 +52,9 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🟢 Bot Status\n\n"
         "Bot is running successfully."
     )
+
+async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "⚙️ Settings\n\n"
+        "Settings will be available soon."
+    )
